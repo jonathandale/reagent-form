@@ -47,9 +47,12 @@
                         :is-submitting is-submitting}]
 
       (rf-node? node :rf/input)
-      [input/mount-input {:node node
-                          :form-state form-state
-                          :is-submitting is-submitting}]
+      (let [props {:node node
+                   :form-state form-state
+                   :is-submitting is-submitting}]
+        (js/console.log "walk-node: input field")
+        (cljs.pprint/pprint props)
+        [input/mount-input props])
 
       (rf-node? node :rf/select-input)
       [select-input/mount-select-input {:node node
@@ -88,8 +91,7 @@
 (defn form
   [{:keys [on-initialized on-change on-form-close]
     :or {on-initialized identity
-         on-form-close identity}}
-   html]
+         on-form-close identity}}]
   (let [form-state (reagent/atom {})]
     (reagent/create-class
      {:component-did-mount
@@ -103,7 +105,10 @@
       #(on-form-close)
       :reagent-render
       (fn [form-data html]
-        [postwalk (walk-node form-data form-state) html])})))
+        (js/console.log "lib form render" form-data)
+        (cljs.pprint/pprint html)
+        [:<>
+         (postwalk (walk-node form-data form-state) html)])})))
 
 (defn form-field
   [{:keys [error-class
@@ -145,6 +150,8 @@
 
 (defn input
   [{:keys [field-key] :as params}]
+  (js/console.log "rf/input")
+(cljs.pprint/pprint params)
   (form-field
    params
    [:input

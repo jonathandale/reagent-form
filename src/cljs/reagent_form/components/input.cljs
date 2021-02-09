@@ -1,5 +1,6 @@
 (ns reagent-form.components.input
-  (:require [reagent-form.utils :refer [invoke-or-return
+  (:require [reagent.core :as reagent]
+            [reagent-form.utils :refer [invoke-or-return
                                         initialize-field!
                                         update-field-value!
                                         validate-field!
@@ -83,36 +84,38 @@
 
                                 ((or on-change identity) event))})))]
 
-    (ensure-field-key-or-throw field-key node)
+    (reagent/create-class
+     {:component-did-mount
+      #(do (ensure-field-key-or-throw field-key node)
+           (initialize-field! form-state
+                              field-key
+                              {:default-errors (or default-errors [])
+                               :default-hints (or default-hints [])
+                               :default-value (get-default-value default-value type)
+                               :hint-triggers (or hint-triggers [])
+                               :masks (or masks [])
+                               :transformers (or transformers [])
+                               :validators (or validators [])}))
+      :reagent-render
+      (fn [props]
+        (js/console.log "input props")
+        (cljs.pprint/pprint props)
+        (let [field-value
+              (get-field-value @form-state field-key)
 
-    (initialize-field! form-state
-                       field-key
-                       {:default-errors (or default-errors [])
-                        :default-hints (or default-hints [])
-                        :default-value (get-default-value default-value type)
-                        :hint-triggers (or hint-triggers [])
-                        :masks (or masks [])
-                        :transformers (or transformers [])
-                        :validators (or validators [])})
+              updated-node
+              (cond-> (update-in mounted-node
+                                 [1]
+                                 assoc
+                                 :value field-value)
 
-    (fn []
-      (let [field-value
-            (get-field-value @form-state field-key)
+                (true? auto-focus)
+                (assoc-in [1 :auto-focus] true)
 
-            updated-node
-            (cond-> (update-in mounted-node
-                               [1]
-                               assoc
-                               :value field-value)
+                (= type :checkbox)
+                (assoc-in [1 :checked] field-value)
 
-              (true? auto-focus)
-              (assoc-in [1 :auto-focus] true)
-
-              (= type :checkbox)
-              (assoc-in [1 :checked] field-value)
-
-              (or @is-submitting
-                  (true? disabled))
-              (assoc-in [1 :disabled] true))]
-
-        updated-node))))
+                (or @is-submitting
+                    (true? disabled))
+                (assoc-in [1 :disabled] true))]
+          updated-node))})))
